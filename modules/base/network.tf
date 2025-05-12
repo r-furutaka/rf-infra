@@ -4,7 +4,7 @@ resource "aws_vpc" "main" {
   enable_dns_support   = true
   enable_dns_hostnames = true
   tags = {
-    Name = "win_record_spread_sheet_vpc"
+    Name = "rf_vpc"
   }
 }
 
@@ -16,7 +16,7 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
   availability_zone       = data.aws_availability_zones.available.names[count.index]
   tags = {
-    Name = "win_record_spread_sheet_public_subnet_${count.index}"
+    Name = "rf_public_subnet_${count.index}"
   }
 }
 
@@ -24,7 +24,7 @@ resource "aws_subnet" "public" {
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
   tags = {
-    Name = "win_record_spread_sheet_igw"
+    Name = "rf_igw"
   }
 }
 
@@ -36,7 +36,7 @@ resource "aws_route_table" "public" {
     gateway_id = aws_internet_gateway.main.id
   }
   tags = {
-    Name = "win_record_spread_sheet_public_rt"
+    Name = "rf_public_rt"
   }
 }
 
@@ -50,4 +50,29 @@ resource "aws_route_table_association" "public" {
 # 利用可能なアベイラビリティゾーンを取得
 data "aws_availability_zones" "available" {
   state = "available"
+}
+
+# ECSタスク用セキュリティグループ
+resource "aws_security_group" "ecs_sg" {
+  name        = "ecs_task_sg"
+  description = "Allow HTTP traffic for ECS tasks"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "rf_ecs_sg"
+  }
 }
